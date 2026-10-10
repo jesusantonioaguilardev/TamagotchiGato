@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tamagotchi Gato</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="device">
+    <header class="top">
+      <button id="name" class="name" title="Cambiar nombre">Michi</button>
+      <span id="age" class="age">0 días</span>
+    </header>
+
+    <div class="screen-wrap">
+      <canvas id="screen" width="80" height="60"></canvas>
+    </div>
+
+    <p id="msg" class="msg">¡Hola!</p>
+
+    <section class="stats">
+      <div class="stat"><canvas data-icon="fish"></canvas><span>Hambre</span><div class="bar" id="bar-hunger"></div></div>
+      <div class="stat"><canvas data-icon="heart"></canvas><span>Ánimo</span><div class="bar" id="bar-happy"></div></div>
+      <div class="stat"><canvas data-icon="bolt"></canvas><span>Energía</span><div class="bar" id="bar-energy"></div></div>
+      <div class="stat"><canvas data-icon="drops"></canvas><span>Higiene</span><div class="bar" id="bar-clean"></div></div>
+      <div class="stat"><canvas data-icon="cross"></canvas><span>Salud</span><div class="bar" id="bar-health"></div></div>
+    </section>
+
+    <nav class="actions">
+      <button data-action="feed"><canvas data-icon="fish"></canvas>Comer</button>
+      <button data-action="play"><canvas data-icon="ball"></canvas>Jugar</button>
+      <button data-action="sleep" id="btn-sleep"><canvas data-icon="moon"></canvas><span>Dormir</span></button>
+      <button data-action="clean"><canvas data-icon="drops"></canvas>Bañar</button>
+      <button data-action="medicine"><canvas data-icon="cross"></canvas>Medicina</button>
+      <button data-action="pet"><canvas data-icon="heart"></canvas>Mimar</button>
+    </nav>
+
+    <button id="reset" class="reset" hidden>Nueva mascota</button>
+  </main>
+
+  <script src="game.js"></script>
+</body>
+</html>
