@@ -189,8 +189,8 @@ function stepMinute(s) {
   }
 
   const zeros = STATS.filter(k => s[k] <= 0).length;
-  if (s.sick) s.health -= 1.5;
-  s.health -= zeros * 2;
+  let dano = (s.sick ? 1.5 : 0) + zeros * 2;
+  s.health -= Math.min(dano, 0.15); // tope: 5.5 h mínimo de vida
   if (!s.sick && STATS.every(k => s[k] > 50)) s.health += 1;
 
   STATS.forEach(k => s[k] = clamp(s[k]));
