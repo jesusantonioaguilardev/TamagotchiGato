@@ -2,7 +2,10 @@
 
 export const MINUTE = 60 * 1000;
 export const STATS = ['hunger', 'happy', 'energy', 'clean'];
-export const SKIN_IDS = ['marciano', 'naranja', 'nocturno', 'chibi', 'armadura'];
+export const SKIN_IDS = [
+  'marciano', 'atigrado', 'pelirrojo', 'blanco', 'negro', 'siames', 'azul',
+  'naranja', 'nocturno', 'chibi', 'armadura',
+];
 const MAX_CATCHUP = 4320; // 3 días en minutos
 
 export const clamp = v => Math.max(0, Math.min(100, v));
