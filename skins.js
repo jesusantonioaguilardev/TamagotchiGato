@@ -83,6 +83,43 @@ const CAT_TAIL = [
   ['....KK.', '...KDK.', '...KDK.', '....KGK', '....KGK', '...KGK.', '...KGK.', '..KGK..', '.KGK...', 'GGK....', 'KK.....'],
 ];
 
+// ---------- Gato normal (orejas de gato, hocico y rayas) ----------
+// U = borde de la oreja, N = rosa (nariz / interior de oreja), D = rayas
+const KITTY_HALF = [
+  '................',
+  '................',
+  '................',
+  '..KK............',
+  '..KUK...........',
+  '..KNUK..........',
+  '..KNNUK.........',
+  '..KNNUUKKKKKKKKK',
+  '.KGNNGGGGGGGGDGD',
+  '.KGGGGGGGGGGGDGG',
+  '.KGGGGGGGGGGGGGG',
+  '..KDGGGGGGGGGGGG',
+  '..KGGGGGGGGGGGGG',
+  '..KDGGGGGGGGGGGG',
+  '..KGGGGGGGGGGGGG',
+  '..KGGGGGGGGGGGGG',
+  '..KGGGGGGGGGGGGG',
+  '..KGGGGGGGGGGGGG',
+  '..KGGGGGGGGGLLLN',
+  'KKKGGGGGGGGLLKLK',
+  '..KGGGGGGGGLLLKL',
+  'KK.KGGGGGGGGLLLL',
+  '....KKKKGGGGLLLL',
+  '.......KGGGGLLLL',
+  '......KEGDGGLLLL',
+  '......KEGGGLLLLL',
+  '......KEGDGLLLLL',
+  '......KEGGGLLLLL',
+  '......KEGDGGLLLL',
+  '......KEGGGGGGKL',
+  '......KEEGGGGGKK',
+  '.......KKKKKKKK.',
+];
+
 // ---------- Armadurita chibi (cabeza azul) ----------
 const CHIBI_HALF = [
   '...............K',
@@ -174,8 +211,22 @@ const ARMOR_EYES = {
 
 const CAT = { half: CAT_HALF, eyeX: 5, eyeY: 14, mouthX: 14, mouthY: 19, extra: { x: 25, y: 19, frames: CAT_TAIL }, voice: 'Miau', purr: 'Purrr... purrr...' };
 
+const KITTY = { ...CAT, half: KITTY_HALF };
+
 const SKINS = [
   { id: 'marciano', name: 'Marciano', ...CAT, pal: {} },
+  { id: 'atigrado', name: 'Atigrado', ...KITTY,
+    pal: { G: '#9aa0ad', L: '#dfe2e8', D: '#5d6270', E: '#474b57', N: '#f2a0b0', Y: '#9ad04a' } },
+  { id: 'pelirrojo', name: 'Pelirrojo', ...KITTY,
+    pal: { G: '#f0a050', L: '#fbe3c0', D: '#c46a24', E: '#9a4f18', N: '#f29aa8', Y: '#7ccf5a' } },
+  { id: 'blanco', name: 'Blanco', ...KITTY,
+    pal: { G: '#f2f2f7', L: '#ffffff', D: '#dcdce6', E: '#c4c4d2', N: '#f5a3b5', Y: '#5ab0f0' } },
+  { id: 'negro', name: 'Negro', ...KITTY,
+    pal: { K: '#0b0b10', G: '#2f2f3a', L: '#4a4a56', D: '#2f2f3a', E: '#1c1c24', N: '#c0607a', Y: '#f4d03f' } },
+  { id: 'siames', name: 'Siamés', ...KITTY,
+    pal: { G: '#efe2c8', L: '#fbf4e6', D: '#e2d0ae', E: '#6b4a3a', U: '#6b4a3a', N: '#b07a7a', Y: '#5ab0f0' } },
+  { id: 'azul', name: 'Azul ruso', ...KITTY,
+    pal: { G: '#7f8fa6', L: '#a6b4c6', D: '#71819a', E: '#5f6c80', N: '#c98a9a', Y: '#8fd16a' } },
   { id: 'naranja', name: 'Naranja', ...CAT,
     pal: { G: '#f2a65a', L: '#f8c98a', D: '#d9773a', E: '#a85428', Y: '#7ad0f0' } },
   { id: 'nocturno', name: 'Nocturno', ...CAT,
@@ -191,6 +242,7 @@ const SKINS = [
 SKINS.forEach(s => {
   s.base = s.half.map(r => r + rev(r));
   s.palette = { ...PAL, ...s.pal };
+  if (!s.palette.U) s.palette.U = s.palette.G;   // borde de oreja del gato normal
 });
 
 function getSkin(id) { return SKINS.find(s => s.id === id) || SKINS[0]; }

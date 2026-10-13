@@ -187,6 +187,8 @@ canvas { image-rendering: pixelated; image-rendering: crisp-edges; }
 .dlg {
   width: min(92vw, 420px);
   max-height: 92vh;
+  overflow-y: auto;
+  overflow-x: hidden;
   padding: 16px;
   background: var(--shell);
   color: var(--label);
@@ -347,6 +349,7 @@ canvas { image-rendering: pixelated; image-rendering: crisp-edges; }
   padding: 8px;
   max-height: 160px;
   overflow-y: auto;
+  overflow-x: hidden;
   background: var(--ink);
   border-radius: 8px;
   font-size: 7px;
