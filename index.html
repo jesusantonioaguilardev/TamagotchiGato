@@ -13,6 +13,8 @@
     <header class="top">
       <button id="name" class="name" title="Cambiar nombre">Michi</button>
       <span id="age" class="age">0 días</span>
+      <button id="coop-btn" class="style-btn" title="Cuidar el gato con otra persona">Juntos</button>
+      <button id="style-btn" class="style-btn" title="Cambiar mascota y carcasa">Estilo</button>
     </header>
 
     <div class="screen-wrap">
@@ -31,7 +33,7 @@
 
     <nav class="actions">
       <button data-action="feed"><canvas data-icon="fish"></canvas>Comer</button>
-      <button data-action="play"><canvas data-icon="ball"></canvas>Jugar</button>
+      <button data-action="play"><canvas data-icon="ball"></canvas>Tetris</button>
       <button data-action="sleep" id="btn-sleep"><canvas data-icon="moon"></canvas><span>Dormir</span></button>
       <button data-action="clean"><canvas data-icon="drops"></canvas>Bañar</button>
       <button data-action="medicine"><canvas data-icon="cross"></canvas>Medicina</button>
@@ -41,6 +43,73 @@
     <button id="reset" class="reset" hidden>Nueva mascota</button>
   </main>
 
-  <script src="game.js"></script>
+  <!-- Selector de estilo -->
+  <dialog id="style-dlg" class="dlg">
+    <h2>Mascota</h2>
+    <div id="skin-list" class="choices"></div>
+    <h2>Carcasa</h2>
+    <div id="shell-list" class="choices"></div>
+    <button id="style-close" class="dlg-btn">Listo</button>
+  </dialog>
+
+  <!-- Cuidar juntos (multijugador) -->
+  <dialog id="coop-dlg" class="dlg">
+    <h2>Cuidar juntos</h2>
+    <label class="field">Tu nombre
+      <input id="player-name" maxlength="16" placeholder="Ej: Ana" autocomplete="nickname">
+    </label>
+    <div id="coop-local">
+      <p class="dlg-text">Comparte tu mascota y cuídenla entre dos: los dos verán lo mismo y cualquiera puede darle de comer, bañarla o jugar.</p>
+      <button id="coop-create" class="dlg-btn wide">Compartir mi mascota</button>
+      <p class="dlg-text">¿Te pasaron un código?</p>
+      <div class="row">
+        <input id="coop-code" maxlength="6" placeholder="ABC123" autocomplete="off">
+        <button id="coop-join" class="dlg-btn">Unirme</button>
+      </div>
+    </div>
+    <div id="coop-online" hidden>
+      <p class="dlg-text">Código de la mascota:</p>
+      <p id="coop-room" class="code"></p>
+      <button id="coop-copy" class="dlg-btn wide">Copiar link</button>
+      <h2>Actividad</h2>
+      <ul id="coop-log" class="log"></ul>
+      <button id="coop-leave" class="dlg-btn wide ghost">Volver a mi mascota solo</button>
+    </div>
+    <button id="coop-close" class="dlg-btn wide">Cerrar</button>
+  </dialog>
+
+  <!-- Tetris -->
+  <dialog id="tetris-dlg" class="dlg tetris-dlg">
+    <div class="tetris">
+      <div class="t-board">
+        <canvas id="tetris" width="60" height="120"></canvas>
+        <div id="tetris-over" class="t-over" hidden>
+          <p>GAME<br>OVER</p>
+          <button id="t-again" class="dlg-btn">Otra vez</button>
+          <button class="dlg-btn t-exit">Salir</button>
+        </div>
+      </div>
+      <aside class="t-side">
+        <div><small>Sig.</small><canvas id="tetris-next" width="30" height="30"></canvas></div>
+        <div><small>Puntos</small><b id="t-score">0</b></div>
+        <div><small>Líneas</small><b id="t-lines">0</b></div>
+        <div><small>Nivel</small><b id="t-level">1</b></div>
+        <button id="t-pause" class="dlg-btn small">Pausa</button>
+        <button class="dlg-btn small t-exit">Salir</button>
+      </aside>
+    </div>
+    <div class="t-pad">
+      <button data-t="left" aria-label="Izquierda"><canvas data-icon="left"></canvas></button>
+      <button data-t="rot" aria-label="Girar"><canvas data-icon="rot"></canvas></button>
+      <button data-t="right" aria-label="Derecha"><canvas data-icon="right"></canvas></button>
+      <button data-t="down" aria-label="Bajar"><canvas data-icon="down"></canvas></button>
+      <button data-t="drop" aria-label="Soltar"><canvas data-icon="drop"></canvas></button>
+    </div>
+    <p class="t-hint">Teclado: flechas mueven y giran, espacio suelta, P pausa</p>
+  </dialog>
+
+  <script src="skins.js"></script>
+  <script src="tetris.js"></script>
+  <script type="module" src="game.js"></script>
 </body>
 </html>

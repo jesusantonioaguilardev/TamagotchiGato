@@ -1,96 +1,6 @@
 // ===== Tamagotchi Gato — pixel art =====
 
-const PAL = {
-  K: '#1b1b2a', // contorno
-  G: '#8fd16a', // verde base
-  L: '#b9ec8f', // verde claro
-  D: '#2fa37c', // verde azulado (manchas)
-  E: '#1e6e55', // verde oscuro (sombra)
-  Y: '#f4e04d', // amarillo
-  W: '#ffffff',
-  R: '#e85a6b',
-  O: '#f39a3c',
-  B: '#7a5230',
-  S: '#6fb8f0',
-  P: '#c9bff0',
-};
-
-// Gris para cuando la mascota muere
-const GHOST = { ...PAL, G: '#d8d8e8', L: '#eeeef8', D: '#b0b0c8', E: '#9090a8', Y: '#ffffff' };
-
-// ---------- Sprite del gato (mitad izquierda, se refleja) ----------
-const HALF = [
-  '...KKK..........',
-  '..KYYYK.........',
-  '..KYYGK.........',
-  '...KGGK.........',
-  '....KGGK........',
-  '.....KGGK.......',
-  '......KGK.......',
-  '.......KGK......',
-  '.KK..KKKGKKKKKKK',
-  '.KYKKGGGGGGGGGGG',
-  '.KYYGGGGGGGGGGGG',
-  '.KGYGGGGGGLLLLLL',
-  '..KGGGGGGGLLLLLL',
-  '..KGGGGGGGGGGGGG',
-  '..KGGGGGGGGGGGGG',
-  '..KGGGGGGGGGGGGG',
-  '..KGGGGGGGGGGGGG',
-  '..KGGGGGGGGGGGGG',
-  '..KGDGDGGGGGGGGE',
-  '..KGGDGGGGGGGEGE',
-  '..KGGGGGGGGGGGEG',
-  '...KGGGGGGGGGGGG',
-  '....KKKKGGGGGGGG',
-  '.......KGGGGGGGG',
-  '......KEGGGGLLLL',
-  '......KEGGGLLLLL',
-  '......KEGEGLLLLL',
-  '......KEGEGLLLLL',
-  '......KEGEGGLLLL',
-  '......KEGGGGGGKL',
-  '......KEEGGGGGKK',
-  '.......KKKKKKKK.',
-];
-const rev = s => [...s].reverse().join('');
-const BASE = HALF.map(r => r + rev(r));
-
-// Ojos 6x4 (ojo izquierdo; el derecho se refleja). '.' = no tocar
-const EYES = {
-  open:   ['.KKKK.', 'KWYYKK', 'KYYYKK', '.KKKK.'],
-  grumpy: ['......', 'KKKKKK', 'KYYYKK', '.KKKK.'],   // la mirada de la referencia
-  closed: ['......', '......', 'KKKKKK', '......'],
-  happy:  ['......', '..KK..', '.K..K.', 'K....K'],
-  sick:   ['......', 'KKKKKK', '.KYYK.', '..KK..'],
-  dead:   ['.K..K.', '..KK..', '..KK..', '.K..K.'],
-};
-
-// Boca 4x3 sobre columnas 14-17, filas 19-21
-const MOUTHS = {
-  eat:  ['.KK.', 'KRRK', '.KK.'],
-  chew: ['....', 'KKKK', '....'],
-  sad:  ['....', '.KK.', 'K..K'],
-};
-
-// Cola (7 de ancho, desde columna 25, fila 19) — dos frames
-const TAILS = [
-  ['.....KK', '....KDK', '....KDK', '....KGK', '....KGK', '...KGK.', '...KGK.', '..KGK..', '.KGK...', 'GGK....', 'KK.....'],
-  ['....KK.', '...KDK.', '...KDK.', '....KGK', '....KGK', '...KGK.', '...KGK.', '..KGK..', '.KGK...', 'GGK....', 'KK.....'],
-];
-
-function overlay(m, pat, x, y) {
-  pat.forEach((row, r) => [...row].forEach((ch, c) => { if (ch !== '.') m[y + r][x + c] = ch; }));
-}
-
-function buildCat(eyes, mouth, tail) {
-  const m = BASE.map(r => [...r]);
-  overlay(m, EYES[eyes], 5, 14);
-  overlay(m, EYES[eyes].map(rev), 21, 14);
-  if (mouth) overlay(m, MOUTHS[mouth], 14, 19);
-  overlay(m, TAILS[tail], 25, 19);
-  return m.map(r => r.join(''));
-}
+import { newPet, catchUp, applyAction, addLog } from './logic.js';
 
 // ---------- Otros sprites ----------
 const SPR = {
@@ -115,6 +25,11 @@ const ICONS = {
   drops: ['..S.....', '.SWS..S.', '..S..SWS', '......S.', '...S....', '..SWS...', '...S....', '........'],
   cross: ['..KKKK..', '..KRRK..', 'KKKRRKKK', 'KRRRRRRK', 'KRRRRRRK', 'KKKRRKKK', '..KRRK..', '..KKKK..'],
   heart: ['........', '.RR..RR.', 'RRRRRRRR', 'RWRRRRRR', '.RRRRRR.', '..RRRR..', '...RR...', '........'],
+  left:  ['...K....', '..KK....', '.KKKKKKK', 'KKKKKKKK', '.KKKKKKK', '..KK....', '...K....', '........'],
+  right: ['....K...', '....KK..', 'KKKKKKK.', 'KKKKKKKK', 'KKKKKKK.', '....KK..', '....K...', '........'],
+  down:  ['...KK...', '...KK...', '...KK...', '...KK...', 'KKKKKKKK', '.KKKKKK.', '..KKKK..', '...KK...'],
+  drop:  ['...KK...', '...KK...', 'KKKKKKKK', '.KKKKKK.', '..KKKK..', '...KK...', '........', 'KKKKKKKK'],
+  rot:   ['..KKKK..', '.K....K.', 'K....KKK', 'K.....KK', 'K....KKK', '.K......', '..KKKK..', '........'],
   bolt:  ['....YY..', '...YY...', '..YY....', '.YYYYYY.', '....YY..', '...YY...', '..YY....', '.Y......'],
 };
 
@@ -147,18 +62,22 @@ function paintIcons() {
 
 // ---------- Estado ----------
 const KEY = 'tamagatchi-gato-v1';
-const MINUTE = 60 * 1000;
-const STATS = ['hunger', 'happy', 'energy', 'clean'];
+const KEY_PLAYER = 'tamagatchi-jugador';
 
-function newPet(name = 'Michi') {
-  return {
-    name, born: Date.now(), last: Date.now(),
-    hunger: 80, happy: 80, energy: 80, clean: 90, health: 100,
-    sleeping: false, sick: false, dead: false, poops: [],
-  };
+// Gato compartido: ?gato=abc123 en la URL
+const ROOM = (new URLSearchParams(location.search).get('gato') || '').toLowerCase();
+const online = /^[a-z0-9]{6}$/.test(ROOM);
+
+let player = { name: '', cid: '' };
+try { Object.assign(player, JSON.parse(localStorage.getItem(KEY_PLAYER)) || {}); } catch (e) {}
+if (!player.cid) player.cid = Math.random().toString(36).slice(2, 12);
+function savePlayer() {
+  try { localStorage.setItem(KEY_PLAYER, JSON.stringify(player)); } catch (e) {}
 }
+savePlayer();
+const playerName = () => player.name || 'Alguien';
 
-function load() {
+function loadLocal() {
   try {
     const s = JSON.parse(localStorage.getItem(KEY));
     if (s && typeof s.born === 'number') return s;
@@ -166,52 +85,26 @@ function load() {
   return newPet();
 }
 function save() {
+  if (online) return;
   try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {}
 }
 
-const clamp = v => Math.max(0, Math.min(100, v));
-
-// Un minuto de vida
-function stepMinute(s) {
-  if (s.dead) return;
-  if (s.sleeping) {
-    s.energy += 4; s.hunger -= 0.7; s.happy -= 0.2;
-  } else {
-    s.energy -= 0.8; s.hunger -= 1.5; s.happy -= 1;
-  }
-  s.clean -= 0.4 + s.poops.length * 0.8;
-
-  if (!s.sleeping && s.poops.length < 3 && Math.random() < 0.04) {
-    s.poops.push(4 + Math.floor(Math.random() * 68));
-  }
-  if (!s.sick && (s.poops.length >= 3 || s.clean < 15 || s.hunger < 10) && Math.random() < 0.06) {
-    s.sick = true;
-  }
-
-  const zeros = STATS.filter(k => s[k] <= 0).length;
-  let dano = (s.sick ? 1.5 : 0) + zeros * 2;
-  s.health -= Math.min(dano, 0.15); // tope: 5.5 h mínimo de vida
-  if (!s.sick && STATS.every(k => s[k] > 50)) s.health += 1;
-
-  STATS.forEach(k => s[k] = clamp(s[k]));
-  s.health = clamp(s.health);
-
-  if (s.sleeping && s.energy >= 100) s.sleeping = false;
-  if (s.health <= 0) { s.dead = true; s.sleeping = false; s.diedAt = Date.now(); }
+// Ajustes de estilo: la carcasa es de cada persona; la skin es del gato
+const KEY_STYLE = 'tamagatchi-gato-style';
+let style = { skin: 'marciano', shell: 'uva' };
+try { Object.assign(style, JSON.parse(localStorage.getItem(KEY_STYLE)) || {}); } catch (e) {}
+let shell = getShell(style.shell);
+applyShell(shell);
+function saveStyle() {
+  try { localStorage.setItem(KEY_STYLE, JSON.stringify(style)); } catch (e) {}
 }
 
-// Recupera el tiempo que la página estuvo cerrada (máx. 3 días)
-function catchUp() {
-  const now = Date.now();
-  let mins = Math.floor((now - state.last) / MINUTE);
-  if (mins > 4320) { state.last = now - 4320 * MINUTE; mins = 4320; }
-  for (let i = 0; i < mins; i++) stepMinute(state);
-  state.last += mins * MINUTE;
-}
-
-let state = load();
-catchUp();
-save();
+let state = online ? newPet() : loadLocal();
+if (!state.skin) state.skin = style.skin;
+if (!state.log) state.log = [];
+let skin = getSkin(state.skin);
+let loading = online;
+if (!online) { catchUp(state); save(); }
 
 // ---------- Animación y efectos ----------
 let frame = 0;
@@ -219,9 +112,15 @@ let anim = null;               // { type, t, dur }
 let catX = 24, targetX = 24, facingLeft = false;
 let particles = [];
 let blinkUntil = 0;
-let lastPet = 0;
 
-function startAnim(type, dur) { anim = { type, t: 0, dur }; }
+const ANIM_DUR = { eat: 30, play: 40, clean: 25, medicine: 20, pet: 18 };
+function playAnim(type) {
+  if (!type) return;
+  anim = { type, t: 0, dur: ANIM_DUR[type] || 20 };
+  if (type === 'pet') {
+    for (let i = 0; i < 3; i++) spawn('heart', catX + 8 + Math.random() * 16, 18 + Math.random() * 6, (Math.random() - .5) * .3);
+  }
+}
 
 function spawn(sprite, x, y, vx = 0, vy = -0.4, life = 20) {
   particles.push({ sprite, x, y, vx, vy, life });
@@ -237,90 +136,231 @@ function say(text, ms = 3500) {
 
 function moodText() {
   const s = state;
+  if (loading) return 'Conectando con el gato compartido...';
   if (s.dead) return `${s.name} se fue al cielo gatuno... 🌟`;
   if (s.sleeping) return 'Zzz... shhh, está durmiendo.';
   if (s.sick) return '¡Me siento mal! Necesito medicina.';
   if (s.poops.length >= 2) return '¡Puaj! Esto huele mal...';
-  if (s.hunger < 25) return '¡Tengo hambre! Miau...';
+  if (s.hunger < 25) return `¡Tengo hambre! ${skin.voice}...`;
   if (s.energy < 20) return 'Tengo mucho sueño...';
   if (s.happy < 25) return 'Estoy aburrido... ¿jugamos?';
   if (s.clean < 25) return 'Necesito un baño.';
-  if (s.happy > 80) return '¡Miau! Estoy feliz :3';
-  return 'Miau.';
+  if (s.happy > 80) return `¡${skin.voice}! Estoy feliz :3`;
+  return `${skin.voice}.`;
+}
+
+// Textos según el resultado de cada acción
+const MSG = {
+  full: () => 'No tengo hambre, gracias.',
+  fed: () => '¡Ñam ñam! Pescadito 🐟',
+  tired: () => 'Estoy muy cansado para jugar...',
+  played: p => p.lines ? `¡${p.lines} líneas y ${p.score} puntos! ¡Qué divertido!` : 'Bueno... al menos jugamos un rato.',
+  slept: () => 'Buenas noches... 🌙',
+  woke: () => '¡Buenos días!',
+  cleaned: () => '¡Limpiecito y brillante!',
+  yuck: () => '¡Puaj! No estoy enfermo.',
+  cured: () => 'Gracias... ya me siento mejor.',
+  petted: () => skin.purr,
+  sleeping: () => 'Zzz... (está durmiendo)',
+  renamed: () => `¡Ahora me llamo ${state.name}!`,
+  skin: () => `¡${skin.voice}! ¿Te gusta mi nuevo look?`,
+  reset: () => `¡Hola! Soy ${state.name} :3`,
+};
+
+// Lo que se anuncia cuando la otra persona hace algo
+const LOG_TEXT = {
+  share: () => 'compartió el gato',
+  feed: () => 'le dio de comer',
+  tetris: e => `jugó Tetris (${e.lines || 0} líneas)`,
+  sleep: e => e.on ? 'apagó la luz' : 'lo despertó',
+  clean: () => 'lo bañó',
+  medicine: () => 'le dio medicina',
+  pet: () => 'lo mimó',
+  rename: e => `le puso de nombre ${e.name}`,
+  skin: () => 'le cambió el look',
+  reset: () => 'adoptó una nueva mascota',
+};
+const logText = e => (LOG_TEXT[e.a] || (() => e.a))(e);
+const LOG_ANIM = { feed: 'eat', tetris: 'play', clean: 'clean', medicine: 'medicine', pet: 'pet' };
+
+// ---------- Red ----------
+async function api(method, body) {
+  const url = method === 'GET' ? `/api/pet?id=${ROOM}` : '/api/pet';
+  const r = await fetch(url, {
+    method,
+    headers: body ? { 'Content-Type': 'application/json' } : undefined,
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) { const e = new Error(data.message || data.error || r.status); e.status = r.status; throw e; }
+  return data;
+}
+
+let lastLogT = 0;
+function setState(next, announce = true) {
+  const fresh = (next.log || []).filter(e => e.t > lastLogT && e.cid !== player.cid);
+  if (announce && fresh.length) {
+    const e = fresh[fresh.length - 1];
+    say(`${e.who} ${logText(e)}`, 4000);
+    if (!next.sleeping) playAnim(LOG_ANIM[e.a]);
+  }
+  lastLogT = Math.max(lastLogT, ...(next.log || []).map(e => e.t));
+  state = next;
+  skin = getSkin(state.skin);
+  updateUI();
+  renderCoop();
+}
+
+let busy = false;
+async function refresh() {
+  if (!online || document.hidden || busy) return;
+  try {
+    const { state: s } = await api('GET');
+    const first = loading;
+    loading = false;
+    setState(s, !first);
+    if (first) say(`¡${skin.voice}! Hola ${playerName()} :3`);
+  } catch (e) {
+    if (e.status === 404) {
+      say('Ese gato no existe (o expiró). Volviendo a tu gato...', 6000);
+      setTimeout(() => { location.href = location.pathname; }, 2500);
+    } else if (loading) {
+      $msg.textContent = 'Sin conexión... reintentando.';
+    }
+  }
 }
 
 // ---------- Acciones ----------
-const actions = {
-  feed() {
-    if (state.hunger > 92) { state.happy -= 3; return say('No tengo hambre, gracias.'); }
-    state.hunger += 25; state.happy += 3;
-    if (Math.random() < 0.3 && state.poops.length < 3) setTimeout(() => { if (!state.dead) state.poops.push(4 + Math.floor(Math.random() * 68)); save(); }, 8000);
-    startAnim('eat', 30);
-    say('¡Ñam ñam! Pescadito 🐟');
-  },
-  play() {
-    if (state.energy < 10) return say('Estoy muy cansado para jugar...');
-    state.happy += 20; state.energy -= 10; state.hunger -= 5;
-    startAnim('play', 40);
-    say('¡Wiii! ¡La pelota!');
-  },
-  sleep() {
-    state.sleeping = !state.sleeping;
-    if (state.sleeping) { anim = null; say('Buenas noches... 🌙'); }
-    else { state.happy -= state.energy < 60 ? 5 : 0; say('¡Buenos días!'); }
-  },
-  clean() {
-    state.poops = []; state.clean = 100; state.happy += 2;
-    startAnim('clean', 25);
-    say('¡Limpiecito y brillante!');
-  },
-  medicine() {
-    if (!state.sick) { state.happy -= 10; return say('¡Puaj! No estoy enfermo.'); }
-    state.sick = false; state.health += 30;
-    startAnim('medicine', 20);
-    say('Gracias... ya me siento mejor.');
-  },
-  pet() {
-    const now = Date.now();
-    if (now - lastPet > 2000) state.happy += 4;
-    lastPet = now;
-    startAnim('pet', 18);
-    for (let i = 0; i < 3; i++) spawn('heart', catX + 8 + Math.random() * 16, 18 + Math.random() * 6, (Math.random() - .5) * .3);
-    say('Purrr... purrr...');
-  },
-};
+async function act(action, payload = {}) {
+  if (loading || busy) return;
+  let result;
+  if (online) {
+    busy = true;
+    try {
+      const r = await api('POST', { op: 'act', id: ROOM, action, payload, who: playerName(), cid: player.cid });
+      result = r.result;
+      setState(r.state, false);
+    } catch (e) {
+      say('No se pudo conectar... intenta de nuevo.');
+      return;
+    } finally {
+      busy = false;
+    }
+  } else {
+    result = applyAction(state, action, payload);
+    if (result.ok) addLog(state, playerName(), player.cid, action, Date.now(), result.log);
+    skin = getSkin(state.skin);
+    save();
+    updateUI();
+    renderCoop();
+  }
+  if (result.code === 'slept') anim = null;
+  playAnim(result.anim);
+  const m = MSG[result.code];
+  if (m) say(m(payload));
+}
 
 function doAction(name) {
   if (state.dead) return;
-  if (state.sleeping && name !== 'sleep') return say('Zzz... (está durmiendo)');
-  actions[name]();
-  STATS.forEach(k => state[k] = clamp(state[k]));
-  state.health = clamp(state.health);
-  save();
-  updateUI();
+  if (name === 'play') {
+    if (state.sleeping) return say(MSG.sleeping());
+    if (state.energy < 10) return say(MSG.tired());
+    say('¡A jugar Tetris!');
+    return Tetris.open(res => act('tetris', res));
+  }
+  act(name);
 }
 
 document.querySelectorAll('[data-action]').forEach(b =>
   b.addEventListener('click', () => doAction(b.dataset.action)));
 
+let lastPetClick = 0;
 cv.addEventListener('click', e => {
   const r = cv.getBoundingClientRect();
   const x = (e.clientX - r.left) / r.width * W;
-  if (x > catX && x < catX + 32) doAction('pet');
+  if (x > catX && x < catX + 32 && Date.now() - lastPetClick > 1200) {
+    lastPetClick = Date.now();
+    doAction('pet');
+  }
 });
 
 document.getElementById('name').addEventListener('click', () => {
-  const n = prompt('¿Cómo se llama tu gato?', state.name);
-  if (n && n.trim()) { state.name = n.trim().slice(0, 12); save(); updateUI(); }
+  const n = prompt('¿Cómo se llama tu mascota?', state.name);
+  if (n && n.trim()) act('rename', { name: n });
 });
 
 document.getElementById('reset').addEventListener('click', () => {
   const n = prompt('Nombre de tu nueva mascota:', 'Michi') || 'Michi';
-  state = newPet(n.trim().slice(0, 12) || 'Michi');
   particles = []; anim = null;
-  save(); updateUI();
-  say(`¡Hola! Soy ${state.name} :3`);
+  act('reset', { name: n });
 });
+
+// ---------- Cuidar juntos ----------
+const coopDlg = document.getElementById('coop-dlg');
+const $playerName = document.getElementById('player-name');
+const shareUrl = () => `${location.origin}${location.pathname}?gato=${ROOM}`;
+
+function renderCoop() {
+  document.getElementById('coop-btn').textContent = online ? `Juntos · ${ROOM.toUpperCase()}` : 'Juntos';
+  if (!coopDlg.open) return;
+  document.getElementById('coop-local').hidden = online;
+  document.getElementById('coop-online').hidden = !online;
+  document.getElementById('coop-room').textContent = ROOM.toUpperCase();
+  const ul = document.getElementById('coop-log');
+  ul.innerHTML = '';
+  [...(state.log || [])].reverse().slice(0, 12).forEach(e => {
+    const li = document.createElement('li');
+    const t = new Date(e.t).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    li.textContent = `${t} ${e.who} ${logText(e)}`;
+    ul.append(li);
+  });
+  if (!ul.children.length) ul.innerHTML = '<li>Todavía no hay actividad.</li>';
+}
+
+function readPlayerName() {
+  const n = $playerName.value.trim().slice(0, 16);
+  if (n !== player.name) { player.name = n; savePlayer(); }
+  return !!n;
+}
+
+document.getElementById('coop-btn').addEventListener('click', () => {
+  $playerName.value = player.name;
+  coopDlg.showModal();
+  renderCoop();
+});
+document.getElementById('coop-close').addEventListener('click', () => { readPlayerName(); coopDlg.close(); });
+$playerName.addEventListener('change', readPlayerName);
+
+document.getElementById('coop-create').addEventListener('click', async e => {
+  if (!readPlayerName()) { $playerName.focus(); return say('Primero escribe tu nombre.'); }
+  e.target.disabled = true;
+  try {
+    const { id } = await api('POST', { op: 'create', state, who: playerName(), cid: player.cid });
+    location.href = `${location.pathname}?gato=${id}`;
+  } catch (err) {
+    e.target.disabled = false;
+    say(`No se pudo compartir: ${err.message}`, 6000);
+  }
+});
+
+document.getElementById('coop-join').addEventListener('click', () => {
+  if (!readPlayerName()) { $playerName.focus(); return say('Primero escribe tu nombre.'); }
+  const code = document.getElementById('coop-code').value.trim().toLowerCase();
+  if (!/^[a-z0-9]{6}$/.test(code)) return say('El código tiene 6 letras/números.');
+  location.href = `${location.pathname}?gato=${code}`;
+});
+
+document.getElementById('coop-copy').addEventListener('click', async e => {
+  try {
+    await navigator.clipboard.writeText(shareUrl());
+    e.target.textContent = '¡Copiado!';
+  } catch (err) {
+    prompt('Copia este link:', shareUrl());
+  }
+  setTimeout(() => { e.target.textContent = 'Copiar link'; }, 1500);
+});
+
+document.getElementById('coop-leave').addEventListener('click', () => { location.href = location.pathname; });
 
 // ---------- UI ----------
 const bars = {};
@@ -360,11 +400,11 @@ function render() {
   const night = s.sleeping;
 
   // Fondo
-  ctx.fillStyle = night ? '#2a2550' : '#e9e4ff';
+  ctx.fillStyle = night ? '#2a2550' : shell.screen;
   ctx.fillRect(0, 0, W, H);
-  ctx.fillStyle = night ? '#1e1a3c' : '#c9bff0';
+  ctx.fillStyle = night ? '#1e1a3c' : shell.floor;
   ctx.fillRect(0, FLOOR, W, H - FLOOR);
-  ctx.fillStyle = night ? '#3a3468' : '#b3a6e8';
+  ctx.fillStyle = night ? '#3a3468' : shell.line;
   for (let x = 0; x < W; x += 6) ctx.fillRect(x, FLOOR + 3, 3, 1);
   ctx.fillRect(0, FLOOR, W, 1);
 
@@ -387,7 +427,7 @@ function render() {
   if (s.dead) {
     eyes = 'dead'; mouth = 'sad';
     y = FLOOR - 33 + Math.round(Math.sin(frame / 6) * 2);
-    drawGrid(buildCat(eyes, mouth, 0), catX, y, false, GHOST);
+    drawGrid(buildPet(skin, eyes, mouth, 0), catX, y, false, ghostPal(skin.palette));
     drawGrid(SPR.halo, catX + 13, y - 3);
     drawParticles();
     return;
@@ -443,7 +483,7 @@ function render() {
     else if (Math.random() < 0.01) blinkUntil = Date.now() + 150;
   }
 
-  drawGrid(buildCat(eyes, mouth, tail), catX, y, facingLeft);
+  drawGrid(buildPet(skin, eyes, mouth, tail), catX, y, facingLeft, skin.palette);
   if (front) front();
 
   if (s.sick && !s.sleeping) drawGrid(SPR.skull, catX + 30, y + 2 + bob);
@@ -465,6 +505,55 @@ function drawParticles() {
   });
 }
 
+// ---------- Selector de estilo ----------
+const styleDlg = document.getElementById('style-dlg');
+
+function renderStylePicker() {
+  const skinList = document.getElementById('skin-list');
+  skinList.innerHTML = '';
+  SKINS.forEach(sk => {
+    const b = document.createElement('button');
+    b.className = 'choice' + (sk.id === skin.id ? ' selected' : '');
+    const c = document.createElement('canvas');
+    c.width = 32; c.height = 32;
+    drawGrid(buildPet(sk, 'open', null, 0), 0, 0, false, sk.palette, c.getContext('2d'));
+    b.append(c, sk.name);
+    b.addEventListener('click', () => {
+      style.skin = sk.id; saveStyle();
+      act('skin', { skin: sk.id }).then(renderStylePicker);
+    });
+    skinList.append(b);
+  });
+
+  const shellList = document.getElementById('shell-list');
+  shellList.innerHTML = '';
+  SHELLS.forEach(sh => {
+    const b = document.createElement('button');
+    b.className = 'choice' + (sh.id === shell.id ? ' selected' : '');
+    const sw = document.createElement('span');
+    sw.className = 'swatch';
+    sw.style.background = sh.shell;
+    sw.style.boxShadow = `inset -4px -4px 0 ${sh.dark}, inset 4px 4px 0 ${sh.light}`;
+    const inner = document.createElement('i');
+    inner.style.background = sh.screen;
+    inner.style.borderColor = sh.border;
+    sw.append(inner);
+    b.append(sw, sh.name);
+    b.addEventListener('click', () => {
+      shell = sh; style.shell = sh.id; saveStyle();
+      applyShell(sh);
+      renderStylePicker();
+    });
+    shellList.append(b);
+  });
+}
+
+document.getElementById('style-btn').addEventListener('click', () => {
+  renderStylePicker();
+  styleDlg.showModal();
+});
+document.getElementById('style-close').addEventListener('click', () => styleDlg.close());
+
 // ---------- Bucle ----------
 paintIcons();
 updateUI();
@@ -477,10 +566,18 @@ setInterval(() => {
 
 setInterval(() => {
   const before = state.dead;
-  if (Date.now() - state.last >= MINUTE) { catchUp(); save(); }
+  if (!online && catchUp(state)) save();
   updateUI();
   if (!before && state.dead) say(moodText(), 999999);
 }, 1000);
 
 // Mensajes de estado de vez en cuando
 setInterval(() => { if (!anim) $msg.textContent = moodText(); }, 8000);
+
+// Multijugador: pedir el estado al servidor cada pocos segundos
+renderCoop();
+if (online) {
+  refresh();
+  setInterval(refresh, 6000);
+  document.addEventListener('visibilitychange', refresh);
+}
