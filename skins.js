@@ -120,7 +120,7 @@ const KITTY_HALF = [
   '.......KKKKKKKK.',
 ];
 
-// ---------- Armadurita chibi (cabeza azul) ----------
+// ---------- Alphonse chibi (cabeza azul) ----------
 const CHIBI_HALF = [
   '...............K',
   '..............KA',
@@ -156,7 +156,7 @@ const CHIBI_HALF = [
   '.......KKKKK....',
 ];
 
-// ---------- Armadura (gris, con penacho) ----------
+// ---------- Alphonse (armadura gris, con penacho) ----------
 const ARMOR_HALF = [
   '...............K',
   '..............KL',
@@ -231,10 +231,10 @@ const SKINS = [
     pal: { G: '#f2a65a', L: '#f8c98a', D: '#d9773a', E: '#a85428', Y: '#7ad0f0' } },
   { id: 'nocturno', name: 'Nocturno', ...CAT,
     pal: { K: '#0d0c14', G: '#3f3b56', L: '#58537a', D: '#8a7fd0', E: '#2a2740', Y: '#f4e04d' } },
-  { id: 'chibi', name: 'Armadurita', half: CHIBI_HALF, eyeX: 6, eyeY: 14, mouthX: 14, mouthY: 21,
+  { id: 'chibi', name: 'Alphonse chibi', half: CHIBI_HALF, eyeX: 6, eyeY: 14, mouthX: 14, mouthY: 21,
     voice: 'Clink', purr: '*clink clink* jeje',
     pal: { A: '#a9bdf0', a: '#7f93cc', Y: '#ffffff', R: '#e83a3a' } },
-  { id: 'armadura', name: 'Armadura', half: ARMOR_HALF, eyeX: 8, eyeY: 13, mouthX: 14, mouthY: 21,
+  { id: 'armadura', name: 'Alphonse', half: ARMOR_HALF, eyeX: 8, eyeY: 13, mouthX: 14, mouthY: 21,
     eyes: ARMOR_EYES, extra: { x: 17, y: 0, frames: [PLUME, PLUME_2], behind: true },
     voice: 'Clank', purr: '*clank* ...gracias.',
     pal: { K: '#111116', G: '#7a7a7a', L: '#a6a6a6', H: '#cfcfcf', D: '#4a4a4a', E: '#262626', Y: '#ffffff', P: '#dadada' } },
