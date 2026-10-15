@@ -32,6 +32,13 @@ return mine`;
 
 let cached;
 
+function pairsToObject(h) {
+  if (!Array.isArray(h)) return h;
+  const out = {};
+  for (let i = 0; i < h.length; i += 2) out[h[i]] = h[i + 1];
+  return out;
+}
+
 export async function getStore() {
   if (cached) return cached;
   const url = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
@@ -42,7 +49,8 @@ export async function getStore() {
     const redis = new Redis({ url, token, automaticDeserialization: false });
     cached = makeStore({
       async read(key) {
-        const h = await redis.hgetall(key);
+        // Sin deserialización automática, hgetall devuelve [campo, valor, ...]
+        const h = pairsToObject(await redis.hgetall(key));
         return h && h.data ? { data: h.data, v: String(h.v) } : null;
       },
       async cas(key, expected, data, v) {
