@@ -101,10 +101,11 @@ export function applyAction(s, action, payload = {}, now = Date.now()) {
     case 'tetris': {
       if (s.energy < 10) { r = { ok: false, code: 'tired' }; break; }
       const lines = Math.max(0, Math.min(500, Math.floor(Number(payload.lines) || 0)));
-      s.happy += Math.min(50, 8 + lines * 6);
+      const vs = ['win', 'lose', 'quit'].includes(payload.vs) ? payload.vs : null;
+      s.happy += Math.min(50, 8 + lines * 6) + (vs === 'win' ? 10 : vs === 'lose' ? 4 : 0);
       s.energy -= 6 + Math.min(14, lines);
       s.hunger -= 5;
-      r = { ok: true, code: 'played', anim: 'play', log: { lines } };
+      r = { ok: true, code: vs ? 'versus' : 'played', anim: 'play', log: vs ? { lines, vs } : { lines } };
       break;
     }
     case 'sleep':

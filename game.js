@@ -1,6 +1,7 @@
 // ===== Tamagotchi Gato — pixel art =====
 
 import { newPet, catchUp, applyAction, addLog } from './logic.js';
+import { invite, answer, playVersus } from './versus.js';
 
 // ---------- Otros sprites ----------
 const SPR = {
@@ -154,6 +155,8 @@ const MSG = {
   full: () => 'No tengo hambre, gracias.',
   fed: () => '¡Ñam ñam! Pescadito 🐟',
   tired: () => 'Estoy muy cansado para jugar...',
+  versus: p => p.vs === 'win' ? `¡Le ganaste a ${p.rival}! 🏆`
+    : p.vs === 'lose' ? `Perdiste contra ${p.rival}... ¡pide la revancha!` : 'Te rendiste... otra vez será.',
   played: p => p.lines ? `¡${p.lines} líneas y ${p.score} puntos! ¡Qué divertido!` : 'Bueno... al menos jugamos un rato.',
   slept: () => 'Buenas noches... 🌙',
   woke: () => '¡Buenos días!',
@@ -171,7 +174,10 @@ const MSG = {
 const LOG_TEXT = {
   share: () => 'compartió el gato',
   feed: () => 'le dio de comer',
-  tetris: e => `jugó Tetris (${e.lines || 0} líneas)`,
+  tetris: e => e.vs === 'win' ? `ganó un Tetris 1 vs 1 (${e.lines || 0} líneas) 🏆`
+    : e.vs === 'lose' ? 'perdió un Tetris 1 vs 1'
+    : e.vs === 'quit' ? 'se rindió en un Tetris 1 vs 1'
+    : `jugó Tetris (${e.lines || 0} líneas)`,
   sleep: e => e.on ? 'apagó la luz' : 'lo despertó',
   clean: () => 'lo bañó',
   medicine: () => 'le dio medicina',
@@ -185,7 +191,9 @@ const LOG_ANIM = { feed: 'eat', tetris: 'play', clean: 'clean', medicine: 'medic
 
 // ---------- Red ----------
 async function api(method, body) {
-  const url = method === 'GET' ? `/api/pet?id=${ROOM}` : '/api/pet';
+  const url = method === 'GET'
+    ? `/api/pet?id=${ROOM}&cid=${encodeURIComponent(player.cid)}&who=${encodeURIComponent(playerName())}`
+    : '/api/pet';
   const r = await fetch(url, {
     method,
     headers: body ? { 'Content-Type': 'application/json' } : undefined,
@@ -215,10 +223,12 @@ let busy = false;
 async function refresh() {
   if (!online || document.hidden || busy) return;
   try {
-    const { state: s } = await api('GET');
+    const r = await api('GET');
     const first = loading;
     loading = false;
-    setState(s, !first);
+    others = r.online || [];
+    setState(r.state, !first);
+    handleInvite(r.invite);
     if (first) say(`¡${skin.voice}! Hola ${playerName()} :3`);
   } catch (e) {
     if (e.status === 404) {
@@ -265,10 +275,114 @@ function doAction(name) {
   if (name === 'play') {
     if (state.sleeping) return say(MSG.sleeping());
     if (state.energy < 10) return say(MSG.tired());
-    say('¡A jugar Tetris!');
-    return Tetris.open(res => act('tetris', res));
+    return online && others.length ? openVsChooser() : soloTetris();
   }
   act(name);
+}
+
+// ---------- Tetris 1 vs 1 ----------
+let others = [];            // otras personas conectadas ahora a esta mascota
+let versusBusy = false;     // hay un reto o una partida en curso
+let waitingGame = null;     // (quien retó) partida esperando respuesta
+let seenInvite = '';
+const vsDlg = document.getElementById('vs-dlg');
+const tetrisDlg = document.getElementById('tetris-dlg');
+vsDlg.addEventListener('cancel', e => e.preventDefault());
+
+function vsDialog(title, text, buttons) {
+  document.getElementById('vs-title').textContent = title;
+  document.getElementById('vs-text').textContent = text;
+  const box = document.getElementById('vs-buttons');
+  box.innerHTML = '';
+  buttons.forEach(([label, fn, ghost]) => {
+    const b = document.createElement('button');
+    b.className = 'dlg-btn' + (ghost ? ' ghost' : '');
+    b.textContent = label;
+    b.addEventListener('click', fn);
+    box.append(b);
+  });
+  if (!vsDlg.open) vsDlg.showModal();
+}
+
+function soloTetris() {
+  say('¡A jugar Tetris!');
+  Tetris.open(res => act('tetris', res));
+}
+
+function openVsChooser() {
+  vsDialog('Tetris', '¿Juegas solo o retas a alguien?', [
+    ...others.map(o => [`Retar a ${o.who}`, () => tryChallenge(o)]),
+    ['Jugar solo', () => { vsDlg.close(); soloTetris(); }],
+    ['Cancelar', () => vsDlg.close(), true],
+  ]);
+}
+
+const versusDone = rival => res => {
+  versusBusy = false;
+  act('tetris', { lines: res.lines, score: res.score, vs: res.vs, rival });
+};
+
+function tryChallenge(o) {
+  if (state.dead) return;
+  if (state.sleeping) { vsDlg.close(); return say(MSG.sleeping()); }
+  if (state.energy < 10) { vsDlg.close(); return say(MSG.tired()); }
+  if (versusBusy || tetrisDlg.open) return;
+  challenge(o);
+}
+
+async function challenge(o) {
+  versusBusy = true;
+  const stopWaiting = text => {
+    if (waitingGame) waitingGame.cancel();
+    waitingGame = null;
+    versusBusy = false;
+    if (text) vsDialog('Tetris', text, [['Ok', () => vsDlg.close()]]);
+    else vsDlg.close();
+  };
+  vsDialog('Reto enviado', `Esperando a que ${o.who} acepte...`, [['Cancelar', () => stopWaiting(), true]]);
+  try {
+    const match = await invite(ROOM, player.cid, playerName(), o.cid);
+    if (!versusBusy) return;                       // canceló mientras se enviaba
+    waitingGame = playVersus({
+      match, cid: player.cid, who: playerName(), host: true, rival: o.who,
+      hooks: {
+        onAccepted: () => { waitingGame = null; vsDlg.close(); },
+        onDeclined: name => { waitingGame = null; stopWaiting(`${name} no puede jugar ahora.`); },
+        onFinish: versusDone(o.who),
+      },
+    });
+    const g = waitingGame;
+    setTimeout(() => { if (waitingGame === g) stopWaiting(`${o.who} no respondió.`); }, 60000);
+  } catch (e) {
+    stopWaiting('No se pudo enviar el reto. Intenta de nuevo.');
+  }
+}
+
+function handleInvite(inv) {
+  if (!inv || inv.match === seenInvite) return;
+  if (versusBusy || tetrisDlg.open) return;         // se lo mostramos cuando termine
+  seenInvite = inv.match;
+  if (state.dead || state.sleeping || state.energy < 10) {
+    answer(inv.match, player.cid, playerName(), false).catch(() => {});
+    return say(`${inv.who} quería jugar Tetris, pero ${state.name} no puede ahora.`, 5000);
+  }
+  vsDialog('¡Te retaron!', `${inv.who} te reta a un Tetris 1 vs 1.`, [
+    ['¡Acepto!', async () => {
+      vsDlg.close();
+      versusBusy = true;
+      try {
+        await answer(inv.match, player.cid, playerName(), true);
+        playVersus({
+          match: inv.match, cid: player.cid, who: playerName(), host: false, rival: inv.who,
+          hooks: { onAccepted() {}, onDeclined() {}, onFinish: versusDone(inv.who) },
+        });
+      } catch (e) {
+        versusBusy = false;
+        say('Ese reto ya no está disponible.');
+      }
+    }],
+    ['Ahora no', () => { vsDlg.close(); answer(inv.match, player.cid, playerName(), false).catch(() => {}); }, true],
+  ]);
 }
 
 document.querySelectorAll('[data-action]').forEach(b =>
@@ -306,6 +420,20 @@ function renderCoop() {
   document.getElementById('coop-local').hidden = online;
   document.getElementById('coop-online').hidden = !online;
   document.getElementById('coop-room').textContent = ROOM.toUpperCase();
+  const ol = document.getElementById('coop-online-list');
+  ol.innerHTML = '';
+  others.forEach(o => {
+    const li = document.createElement('li');
+    const name = document.createElement('span');
+    name.textContent = `● ${o.who}`;
+    const b = document.createElement('button');
+    b.className = 'dlg-btn';
+    b.textContent = 'Retar';
+    b.addEventListener('click', () => { coopDlg.close(); tryChallenge(o); });
+    li.append(name, b);
+    ol.append(li);
+  });
+  if (!others.length) ol.innerHTML = '<li>Nadie más conectado ahora.</li>';
   const ul = document.getElementById('coop-log');
   ul.innerHTML = '';
   [...(state.log || [])].reverse().slice(0, 12).forEach(e => {
@@ -578,6 +706,9 @@ setInterval(() => { if (!anim) $msg.textContent = moodText(); }, 8000);
 renderCoop();
 if (online) {
   refresh();
-  setInterval(refresh, 6000);
+  // Más seguido si hay alguien más conectado (para que los retos lleguen rápido)
+  (function schedule() {
+    setTimeout(() => refresh().finally(schedule), others.length ? 3000 : 6000);
+  })();
   document.addEventListener('visibilitychange', refresh);
 }

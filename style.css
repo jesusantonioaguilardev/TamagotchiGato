@@ -356,3 +356,16 @@ canvas { image-rendering: pixelated; image-rendering: crisp-edges; }
   line-height: 1.8;
   color: #d8d2f5;
 }
+
+/* ---------- 1 vs 1 ---------- */
+.t-opp { align-items: center; }
+.t-opp small { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: center; }
+#t-opp-info { white-space: pre-line; line-height: 1.5; }
+#t-opp-name { color: var(--yellow); }
+#tetris-opp { width: 45px; height: 90px; border: 2px solid #3a3468; }
+.t-side [hidden], .t-over [hidden] { display: none !important; }
+.t-over small { font-size: 7px; color: #fff; text-shadow: none; }
+#vs-buttons { display: grid; gap: 8px; margin-top: 14px; }
+#vs-buttons .dlg-btn { width: 100%; }
+#coop-online-list li { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+#coop-online-list .dlg-btn { font-size: 7px; padding: 6px 8px; }
