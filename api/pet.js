@@ -1,5 +1,5 @@
 // API del gato compartido
-//   GET  /api/pet?id=abc123                          -> { state }
+//   GET  /api/pet?id=abc123&cid=..&who=..             -> { state, online, invite }
 //   POST /api/pet { op: 'create', state?, who, cid }  -> { id, state }
 //   POST /api/pet { op: 'act', id, action, payload, who, cid } -> { state, result }
 
@@ -33,7 +33,11 @@ export default async function handler(req, res) {
       if (!ID_RE.test(id)) return res.status(400).json({ error: 'bad_id' });
       const out = await store.update(id, s => catchUp(s));
       if (!out) return res.status(404).json({ error: 'not_found' });
-      return res.status(200).json({ state: out.state });
+      // Si el cliente se identifica, lo marcamos como conectado y le
+      // contamos quién más está y si alguien lo retó.
+      const cid = cleanCid(req.query.cid);
+      const room = cid ? await store.touchRoom(id, cid, cleanWho(req.query.who)) : { online: [], invite: null };
+      return res.status(200).json({ state: out.state, ...room });
     }
 
     if (req.method === 'POST') {

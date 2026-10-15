@@ -68,6 +68,8 @@
       </div>
     </div>
     <div id="coop-online" hidden>
+      <h2>Conectados</h2>
+      <ul id="coop-online-list" class="log"></ul>
       <p class="dlg-text">Código de la mascota:</p>
       <p id="coop-room" class="code"></p>
       <button id="coop-copy" class="dlg-btn wide">Copiar link</button>
@@ -78,18 +80,30 @@
     <button id="coop-close" class="dlg-btn wide">Cerrar</button>
   </dialog>
 
+  <!-- Retos 1 vs 1 -->
+  <dialog id="vs-dlg" class="dlg">
+    <h2 id="vs-title">Tetris</h2>
+    <p id="vs-text" class="dlg-text"></p>
+    <div id="vs-buttons"></div>
+  </dialog>
+
   <!-- Tetris -->
   <dialog id="tetris-dlg" class="dlg tetris-dlg">
     <div class="tetris">
       <div class="t-board">
         <canvas id="tetris" width="60" height="120"></canvas>
         <div id="tetris-over" class="t-over" hidden>
-          <p>GAME<br>OVER</p>
+          <p id="t-over-text">GAME<br>OVER</p>
           <button id="t-again" class="dlg-btn">Otra vez</button>
           <button class="dlg-btn t-exit">Salir</button>
         </div>
       </div>
       <aside class="t-side">
+        <div id="t-opp" class="t-opp" hidden>
+          <small id="t-opp-name">Rival</small>
+          <canvas id="tetris-opp" width="30" height="60"></canvas>
+          <small id="t-opp-info"></small>
+        </div>
         <div><small>Sig.</small><canvas id="tetris-next" width="30" height="30"></canvas></div>
         <div><small>Puntos</small><b id="t-score">0</b></div>
         <div><small>Líneas</small><b id="t-lines">0</b></div>

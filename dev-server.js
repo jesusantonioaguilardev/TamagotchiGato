@@ -1,12 +1,15 @@
 // Servidor local para probar el multijugador sin Vercel:  npm run local
-// Sirve los archivos estáticos y /api/pet (con almacén en memoria si no hay
+// Sirve los archivos estáticos y la API (con almacén en memoria si no hay
 // variables de Upstash).
 
 import http from 'node:http';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import handler from './api/pet.js';
+import pet from './api/pet.js';
+import match from './api/match.js';
+
+const API = { '/api/pet': pet, '/api/match': match };
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT) || 3000;
@@ -18,7 +21,8 @@ const TYPES = {
 http.createServer(async (req, res) => {
   const url = new URL(req.url, 'http://localhost');
 
-  if (url.pathname === '/api/pet') {
+  const handler = API[url.pathname];
+  if (handler) {
     let raw = '';
     for await (const chunk of req) raw += chunk;
     req.query = Object.fromEntries(url.searchParams);

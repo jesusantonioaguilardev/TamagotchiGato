@@ -1,8 +1,8 @@
-// ===== Mini Tetris (para subir el ánimo) =====
+// ===== Mini Tetris (para subir el ánimo) — solo o 1 vs 1 =====
 
 const Tetris = (() => {
   const COLS = 10, ROWS = 20, C = 6;
-  const COLORS = { I: '#6fd3f0', O: '#f4e04d', T: '#b27be8', S: '#8fd16a', Z: '#e85a6b', J: '#5a7be8', L: '#f39a3c' };
+  const COLORS = { I: '#6fd3f0', O: '#f4e04d', T: '#b27be8', S: '#8fd16a', Z: '#e85a6b', J: '#5a7be8', L: '#f39a3c', G: '#8a8aa0' };
   const SHAPES = {
     I: [[0, 0, 0, 0], [1, 1, 1, 1], [0, 0, 0, 0], [0, 0, 0, 0]],
     O: [[1, 1], [1, 1]],
@@ -12,19 +12,42 @@ const Tetris = (() => {
     J: [[1, 0, 0], [1, 1, 1], [0, 0, 0]],
     L: [[0, 0, 1], [1, 1, 1], [0, 0, 0]],
   };
+  const ATTACK = [0, 0, 1, 2, 4]; // líneas de basura que manda cada limpieza
 
   const dlg = document.getElementById('tetris-dlg');
   const cv = document.getElementById('tetris');
   const ctx = cv.getContext('2d');
   const nextCv = document.getElementById('tetris-next');
   const nctx = nextCv.getContext('2d');
+  const oppCv = document.getElementById('tetris-opp');
+  const octx = oppCv.getContext('2d');
   const $score = document.getElementById('t-score');
   const $lines = document.getElementById('t-lines');
   const $level = document.getElementById('t-level');
   const $over = document.getElementById('tetris-over');
+  const $overText = document.getElementById('t-over-text');
+  const $again = document.getElementById('t-again');
+  const $pause = document.getElementById('t-pause');
+  const $opp = document.getElementById('t-opp');
+  const $oppName = document.getElementById('t-opp-name');
+  const $oppInfo = document.getElementById('t-opp-info');
 
   let board, cur, next, bag = [], score, lines, level, over, paused, acc, lastT, raf;
   let total = { lines: 0, score: 0 }, onDone = null, flash = 0;
+  let rand = Math.random;
+  let vs = null; // { onEvent, pending, startAt, result, oppBoard }
+
+  // Generador aleatorio con semilla: los dos jugadores reciben las mismas piezas
+  function seeded(seed) {
+    let a = seed >>> 0;
+    return () => {
+      a = (a + 0x6D2B79F5) >>> 0;
+      let t = a;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
 
   const shade = (hex, amt) => {
     const n = parseInt(hex.slice(1), 16);
@@ -36,7 +59,7 @@ const Tetris = (() => {
     if (!bag.length) {
       bag = Object.keys(SHAPES);
       for (let i = bag.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
+        const j = Math.floor(rand() * (i + 1));
         [bag[i], bag[j]] = [bag[j], bag[i]];
       }
     }
@@ -97,7 +120,9 @@ const Tetris = (() => {
       if (y < 0) top = true; else board[y][cur.x + c] = cur.t;
     }));
     if (top) return gameOver();
-    clearLines();
+    const n = clearLines();
+    if (vs) versusAfterLock(n);
+    if (over) return;
     spawn();
     acc = 0;
   }
@@ -118,11 +143,65 @@ const Tetris = (() => {
       flash = 4;
     }
     hud();
+    return n;
+  }
+
+  // ---------- Versus ----------
+  function versusAfterLock(n) {
+    let attack = ATTACK[n];
+    if (attack && vs.pending) {             // limpiar líneas cancela la basura que viene
+      const cancel = Math.min(attack, vs.pending);
+      attack -= cancel; vs.pending -= cancel;
+    }
+    if (attack) vs.onEvent({ t: 'atk', n: attack });
+    if (!n && vs.pending) insertGarbage();
+    if (!over) vs.onEvent({ t: 'board', b: boardString(), s: score, l: lines });
+  }
+
+  function insertGarbage() {
+    const n = Math.min(vs.pending, 8);
+    vs.pending -= n;
+    const hole = Math.floor(Math.random() * COLS);
+    for (let i = 0; i < n; i++) {
+      if (board[0].some(Boolean)) { gameOver(); return; }
+      board.shift();
+      const row = Array(COLS).fill('G');
+      row[hole] = null;
+      board.push(row);
+    }
+  }
+
+  const boardString = () => board.map(r => r.map(t => t || '.').join('')).join('');
+
+  function drawOpponent() {
+    octx.fillStyle = '#1b1b2a';
+    octx.fillRect(0, 0, oppCv.width, oppCv.height);
+    const b = vs && vs.oppBoard;
+    if (!b) return;
+    for (let i = 0; i < b.length; i++) {
+      const t = b[i];
+      if (t === '.' || !COLORS[t]) continue;
+      octx.fillStyle = COLORS[t];
+      octx.fillRect((i % COLS) * 3, Math.floor(i / COLS) * 3, 3, 3);
+    }
+  }
+
+  function showEnd(text) {
+    $overText.innerHTML = text;
+    $again.hidden = !!vs;
+    $over.hidden = false;
   }
 
   function gameOver() {
+    if (over) return;
     over = true;
-    $over.hidden = false;
+    if (vs) {
+      vs.result = vs.result || 'lose';
+      vs.onEvent({ t: 'over', s: score, l: lines });
+      showEnd(vs.result === 'lose' ? 'PERDISTE' : '¡GANASTE!');
+    } else {
+      showEnd('GAME<br>OVER');
+    }
   }
 
   function hud() {
@@ -140,7 +219,14 @@ const Tetris = (() => {
     c2.fillRect(x, y + s - 1, s, 1); c2.fillRect(x + s - 1, y, 1, s);
   }
 
-  function draw() {
+  // Números grandes en pixel art para la cuenta regresiva
+  const DIGITS = {
+    1: ['.#.', '##.', '.#.', '.#.', '###'],
+    2: ['##.', '..#', '.#.', '#..', '###'],
+    3: ['##.', '..#', '.#.', '..#', '##.'],
+  };
+
+  function draw(now) {
     ctx.fillStyle = flash > 0 ? '#3a3468' : '#1b1b2a';
     ctx.fillRect(0, 0, cv.width, cv.height);
     if (flash > 0) flash--;
@@ -149,7 +235,8 @@ const Tetris = (() => {
 
     board.forEach((row, y) => row.forEach((t, x) => { if (t) cell(ctx, x * C, y * C, COLORS[t]); }));
 
-    if (!over && cur) {
+    const waiting = vs && (!vs.startAt || now < vs.startAt);
+    if (!over && cur && !waiting) {
       // Sombra de dónde caerá
       let gy = cur.y;
       while (!collide(cur.m, cur.x, gy + 1)) gy++;
@@ -160,6 +247,29 @@ const Tetris = (() => {
       cur.m.forEach((row, r) => row.forEach((v, c) => {
         if (v && cur.y + r >= 0) cell(ctx, (cur.x + c) * C, (cur.y + r) * C, COLORS[cur.t]);
       }));
+    }
+
+    // Basura pendiente: barra roja en el borde derecho
+    if (vs && vs.pending) {
+      ctx.fillStyle = '#e85a6b';
+      const h = Math.min(ROWS, vs.pending) * C;
+      ctx.fillRect(cv.width - 2, cv.height - h, 2, h);
+    }
+
+    if (waiting && !over) {
+      ctx.fillStyle = 'rgba(27,27,42,0.75)';
+      ctx.fillRect(0, 0, cv.width, cv.height);
+      if (vs.startAt) {
+        const d = Math.ceil((vs.startAt - now) / 1000);
+        const g = DIGITS[Math.max(1, Math.min(3, d))];
+        ctx.fillStyle = '#f4e04d';
+        g.forEach((row, r) => [...row].forEach((ch, c) => { if (ch === '#') ctx.fillRect(21 + c * 6, 45 + r * 6, 6, 6); }));
+      } else {
+        // Esperando al rival: tres puntitos animados
+        ctx.fillStyle = '#ffffff';
+        const k = Math.floor(now / 400) % 4;
+        for (let i = 0; i < k; i++) ctx.fillRect(22 + i * 6, 58, 3, 3);
+      }
     }
 
     if (paused && !over) {
@@ -182,12 +292,13 @@ const Tetris = (() => {
   function loop(t) {
     if (!dlg.open) return;
     const dt = t - lastT; lastT = t;
-    if (!over && !paused) {
+    const waiting = vs && (!vs.startAt || t < vs.startAt);
+    if (!over && !paused && !waiting) {
       acc += dt;
       const speed = Math.max(90, 650 - (level - 1) * 60);
       if (acc >= speed) { acc = 0; step(); }
     }
-    draw();
+    draw(t);
     raf = requestAnimationFrame(loop);
   }
 
@@ -201,21 +312,91 @@ const Tetris = (() => {
     hud();
   }
 
-  function open(cb) {
-    onDone = cb;
-    total = { lines: 0, score: 0 };
-    score = 0; lines = 0;
-    reset();
+  function begin() {
     dlg.showModal();
     lastT = performance.now();
     raf = requestAnimationFrame(loop);
   }
 
+  // Modo solo
+  function open(cb) {
+    onDone = cb;
+    vs = null;
+    rand = Math.random;
+    total = { lines: 0, score: 0 };
+    score = 0; lines = 0;
+    $opp.hidden = true;
+    $pause.hidden = false;
+    reset();
+    begin();
+  }
+
+  // Modo 1 vs 1. onEvent(msg) recibe lo que hay que mandarle al rival.
+  // Devuelve un control para darle al juego lo que llega del rival.
+  function openVersus({ rival, onEvent, onDone: cb }) {
+    onDone = cb;
+    vs = { onEvent, pending: 0, startAt: 0, result: null, oppBoard: null };
+    total = { lines: 0, score: 0 };
+    score = 0; lines = 0;
+    rand = Math.random;
+    board = Array.from({ length: ROWS }, () => Array(COLS).fill(null));
+    cur = null; over = false; paused = false;
+    $over.hidden = true;
+    $opp.hidden = false;
+    $pause.hidden = true;
+    $oppName.textContent = rival;
+    $oppInfo.textContent = 'Conectando...';
+    hud();
+    drawOpponent();
+    nctx.fillStyle = '#1b1b2a';
+    nctx.fillRect(0, 0, nextCv.width, nextCv.height);
+    begin();
+
+    return {
+      start(seed) {
+        rand = seeded(seed);
+        bag = []; next = null; score = 0; lines = 0; level = 1; acc = 0;
+        board = Array.from({ length: ROWS }, () => Array(COLS).fill(null));
+        spawn();
+        hud();
+        vs.startAt = performance.now() + 3000;
+      },
+      garbage(n) { if (!over) vs.pending = Math.min(20, vs.pending + n); },
+      opponent(b, s, l) {
+        vs.oppBoard = b;
+        $oppInfo.textContent = `${s} pts
+${l} líneas`;
+        drawOpponent();
+      },
+      opponentOver() {
+        if (over) return;
+        vs.result = 'win';
+        over = true;
+        showEnd('¡GANASTE!');
+      },
+      opponentLeft(text) {
+        $oppInfo.textContent = text;
+        if (over) return;
+        vs.result = 'win';
+        over = true;
+        showEnd('¡GANASTE!<br><small>' + text + '</small>');
+      },
+      status(text) { $oppInfo.textContent = text; },
+      close,
+    };
+  }
+
   function close() {
+    if (!dlg.open && !onDone) return;
     if (dlg.open) dlg.close();
     cancelAnimationFrame(raf);
     stopRepeat();
-    const res = { lines: total.lines + lines, score: total.score + score };
+    let res = { lines: total.lines + lines, score: total.score + score };
+    if (vs) {
+      if (!vs.result) vs.onEvent({ t: 'quit' });   // salir a media partida = rendirse
+      res.vs = vs.result || 'quit';
+      vs = null;
+    }
     const cb = onDone; onDone = null;
     if (cb) cb(res);
   }
@@ -232,13 +413,14 @@ const Tetris = (() => {
   };
   function doAct(name) {
     if (over || paused || !cur) return;
+    if (vs && (!vs.startAt || performance.now() < vs.startAt)) return;
     act[name]();
   }
 
   document.addEventListener('keydown', e => {
     if (!dlg.open) return;
     const map = { ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'rot', x: 'rot', ArrowDown: 'down', ' ': 'drop' };
-    if (e.key === 'p' || e.key === 'P') { paused = !paused; return; }
+    if ((e.key === 'p' || e.key === 'P') && !vs) { paused = !paused; return; }
     if (map[e.key]) { e.preventDefault(); doAct(map[e.key]); }
   });
 
@@ -257,9 +439,9 @@ const Tetris = (() => {
     ['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => b.addEventListener(ev, stopRepeat));
   });
 
-  document.getElementById('t-again').addEventListener('click', reset);
-  document.getElementById('t-pause').addEventListener('click', () => { if (!over) paused = !paused; });
+  $again.addEventListener('click', reset);
+  $pause.addEventListener('click', () => { if (!over && !vs) paused = !paused; });
   document.querySelectorAll('.t-exit').forEach(b => b.addEventListener('click', close));
 
-  return { open };
+  return { open, openVersus };
 })();
