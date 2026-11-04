@@ -38,7 +38,7 @@ export function stepMinute(s, now = Date.now()) {
 
   const zeros = STATS.filter(k => s[k] <= 0).length;
   let dano = (s.sick ? 1.5 : 0) + zeros * 2;
-  s.health -= Math.min(dano, 0.15); // tope: 5.5 h mínimo de vida
+  s.health -= Math.min(dano, 0.065); // tope: ~25.6 h mínimo de vida
   if (!s.sick && STATS.every(k => s[k] > 50)) s.health += 1;
 
   clampAll(s);
